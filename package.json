@@ -1,0 +1,6 @@
+{
+    "scripts": {
+        "start": "symfony server:start --port=8010",
+        "truncate-database": "symfony console d:d:d --if-exists --force && symfony console d:d:c && symfony console d:s:u --force && symfony console d:f:l -n"
+    }
+}
