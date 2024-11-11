@@ -1,5 +1,5 @@
 <?php
-// src/Controller/ProductController.php
+
 namespace App\Controller;
 
 use App\Entity\Product;
@@ -8,13 +8,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\ProductRepository;
 
-class ProductController extends AbstractController
+final class ProductController extends AbstractController
 {
     #[Route('/products', name: 'product_index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): JsonResponse
+    public function index(ProductRepository $productRepository): JsonResponse
     {
-        $products = $entityManager->getRepository(Product::class)->findAll();
+        $products = $productRepository->findAll();
         $data = [];
 
         foreach ($products as $product) {
@@ -58,10 +59,8 @@ class ProductController extends AbstractController
     }
 
     #[Route('/products/{id}', name: 'product_show', methods: ['GET'])]
-    public function show(int $id, EntityManagerInterface $entityManager): JsonResponse
+    public function show(Product $product): JsonResponse
     {
-        $product = $entityManager->getRepository(Product::class)->find($id);
-
         if (!$product) {
             return new JsonResponse(['error' => 'Product not found'], JsonResponse::HTTP_NOT_FOUND);
         }
@@ -132,7 +131,6 @@ class ProductController extends AbstractController
 
     private function isAdmin(): bool
     {
-        // Simulation de vérification du rôle admin (remplacez par l'intégration avec UserService)
-        return true;  // Remplacez cette ligne avec une vraie vérification d'authentification
+        return true;
     }
 }

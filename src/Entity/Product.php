@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ProductRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use DateTimeInterface;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 class Product
@@ -15,89 +16,84 @@ class Product
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $name = null;
+    private string $name;
 
-    // Modification du type de la colonne description pour un texte plus long
     #[ORM\Column(type: Types::TEXT)]
-    private ?string $description = null;
+    private string $description;
 
     #[ORM\Column]
-    private ?float $price = null;
+    private int $price;
 
-    // Ajout du champ available de type booléen
     #[ORM\Column(type: Types::BOOLEAN)]
-    private ?bool $available = null;
+    private bool $available;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    private DateTimeInterface $createdAt;
 
     public function __construct()
     {
-        // Initialiser createdAt à la date et heure actuelles lors de la création
         $this->createdAt = new \DateTime();
     }
 
-    // Getters et Setters
-
-    public function getId(): ?int
+    final public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getName(): ?string
+    final public function getName(): string
     {
         return $this->name;
     }
 
-    public function setName(string $name): static
+    final public function setName(string $name): static
     {
         $this->name = $name;
 
         return $this;
     }
 
-    public function getDescription(): ?string
+    final public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(string $description): static
+    final public function setDescription(string $description): static
     {
         $this->description = $description;
 
         return $this;
     }
 
-    public function getPrice(): ?float
+    final public function getPrice(): int
     {
         return $this->price;
     }
 
-    public function setPrice(float $price): static
+    final public function setPrice(int $price): static
     {
         $this->price = $price;
 
         return $this;
     }
 
-    public function getAvailable(): ?bool
+    final public function getAvailable(): bool
     {
         return $this->available;
     }
 
-    public function setAvailable(bool $available): static
+    final public function setAvailable(bool $available): static
     {
         $this->available = $available;
 
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    final public function getCreatedAt(): DateTimeInterface
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    final public function setCreatedAt(DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
 
