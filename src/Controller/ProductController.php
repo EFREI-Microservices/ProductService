@@ -6,22 +6,24 @@ use DateTime;
 use JsonException;
 use App\Entity\Product;
 use App\Repository\ProductRepository;
-use App\Service\UserPermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[Route('/api/')]
-final class ProductController extends AbstractController
+final class ProductController extends AbstractTokenAuthenticatedController
 {
     public function __construct(
+        private readonly HttpClientInterface $httpClient,
         private readonly ProductRepository $productRepository,
         private readonly EntityManagerInterface $entityManager,
-        private readonly UserPermissionService $userPermissionService,
-    ) {}
+    ) {
+        parent::__construct($this->httpClient);
+    }
 
     #[Route('products', name: 'product_index', methods: ['GET'])]
     public function index(): JsonResponse
@@ -43,14 +45,29 @@ final class ProductController extends AbstractController
         return new JsonResponse($data);
     }
 
+    #[Route('products/{id}', name: 'product_show', methods: ['GET'])]
+    public function show(?Product $product): JsonResponse
+    {
+        $data = [
+            'id' => $product?->getId(),
+            'name' => $product?->getName(),
+            'description' => $product?->getDescription(),
+            'price' => $product?->getPrice(),
+            'available' => $product?->getAvailable(),
+            'createdAt' => $product?->getCreatedAt()->format('Y-m-d H:i:s')
+        ];
+
+        return new JsonResponse($data);
+    }
+
     /**
      * @throws JsonException
      */
     #[Route('products', name: 'product_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        if (!$this->userPermissionService->isAdmin()) {
-            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        if (!$this->isAdmin($this->extractTokenFromRequest($request))) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
         $data = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -72,33 +89,14 @@ final class ProductController extends AbstractController
         return new JsonResponse(['status' => 'Product created!'], Response::HTTP_CREATED);
     }
 
-    #[Route('products/{id}', name: 'product_show', methods: ['GET'])]
-    public function show(?Product $product): JsonResponse
-    {
-        if (!$product) {
-            return new JsonResponse(['error' => 'Product not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        $data = [
-            'id' => $product->getId(),
-            'name' => $product->getName(),
-            'description' => $product->getDescription(),
-            'price' => $product->getPrice(),
-            'available' => $product->getAvailable(),
-            'createdAt' => $product->getCreatedAt()->format('Y-m-d H:i:s')
-        ];
-
-        return new JsonResponse($data);
-    }
-
     /**
      * @throws JsonException
      */
     #[Route('products/{id}', name: 'product_update', methods: ['PATCH'])]
     public function update(?Product $product, Request $request): JsonResponse
     {
-        if (!$this->userPermissionService->isAdmin()) {
-            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        if (!$this->isAdmin($this->extractTokenFromRequest($request))) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
         if (!$product) {
@@ -117,21 +115,24 @@ final class ProductController extends AbstractController
         return new JsonResponse(['status' => 'Product updated!']);
     }
 
+    /**
+     * @throws TransportExceptionInterface
+     */
     #[Route('products/{id}', name: 'product_delete', methods: ['DELETE'])]
-    public function delete(int $id, EntityManagerInterface $entityManager): JsonResponse
+    public function delete(int $id, Request $request): JsonResponse
     {
-        if (!$this->userPermissionService->isAdmin()) {
-            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        if (!$this->isAdmin($this->extractTokenFromRequest($request))) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $product = $entityManager->getRepository(Product::class)->find($id);
+        $product = $this->entityManager->getRepository(Product::class)->find($id);
 
         if (!$product) {
             return new JsonResponse(['error' => 'Product not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $entityManager->remove($product);
-        $entityManager->flush();
+        $this->entityManager->remove($product);
+        $this->entityManager->flush();
 
         return new JsonResponse(['status' => 'Product deleted!']);
     }
